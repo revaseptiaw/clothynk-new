@@ -19,14 +19,20 @@ def dashboard(request):
     total_customers    = Customer.objects.count()
     total_transactions = Transaction.objects.count()
 
-    # Hitung Pendapatan Bulan Ini (Berdasarkan bulan berjalan di sistem)
+    # Hitung Pendapatan Bulan Ini
     today = timezone.now()
     revenue_this_month = Transaction.objects.filter(
         date__year=today.year,
         date__month=today.month
     ).aggregate(total=Sum('amount'))['total'] or 0
 
-    # 2. Distribusi Tier Loyalty (Disesuaikan jadi 'tier_counts' untuk HTML)
+    # Hitung Pelanggan Baru Bulan Ini
+    new_customers_this_month = Customer.objects.filter(
+        created_at__year=today.year,
+        created_at__month=today.month
+    ).count()
+
+    # 2. Distribusi Tier Loyalty
     tier_counts = {
         'bronze':   LoyaltyProfile.objects.filter(tier='bronze').count(),
         'silver':   LoyaltyProfile.objects.filter(tier='silver').count(),
@@ -34,8 +40,8 @@ def dashboard(request):
         'platinum': LoyaltyProfile.objects.filter(tier='platinum').count(),
     }
 
-    # 3. Data Grafik Pendapatan (Disesuaikan jadi 'monthly_labels' & 'monthly_data')
-    seven_days = timezone.now() - timedelta(days=365)
+    # 3. Data Grafik Pendapatan
+    seven_days = today - timedelta(days=365)
     recent_txn = (
         Transaction.objects
         .filter(date__gte=seven_days)
@@ -48,14 +54,11 @@ def dashboard(request):
     
     # 4. Top Pelanggan
     top_customers = Customer.objects.annotate(
-        total=Sum('transactions__amount') # <--- Tambahkan huruf 's'
+        total=Sum('transactions__amount')
     ).order_by('-total')[:5]
 
-   # 5. Risiko Churn 
-    # A. Hitung TOTAL SELURUH pelanggan berisiko tinggi (Untuk angka di kotak atas)
+    # 5. Risiko Churn 
     total_churn_risk = PredictionResult.objects.filter(churn_probability__gte=70).count()
-
-    # B. Ambil HANYA 5 pelanggan berisiko paling tinggi (Untuk daftar di kanan bawah)
     churn_risks = PredictionResult.objects.filter(
         churn_probability__gte=70
     ).select_related('customer').order_by('-churn_probability')[:5]
@@ -63,13 +66,25 @@ def dashboard(request):
     # 6. Transaksi Terbaru
     recent_transactions = Transaction.objects.select_related('customer').order_by('-date')[:5]
 
+   # 7. Campaign Teratas (BARU)
+    # Cari semua campaign yang sedang aktif saat ini
+    active_campaigns = Campaign.objects.filter(
+        is_active=True, 
+        start_date__lte=today.date() if isinstance(today, timezone.datetime) else today,
+        end_date__gte=today.date() if isinstance(today, timezone.datetime) else today
+    )
+
+    # Pilih campaign dengan jumlah target audiens (get_target_count) paling banyak
+    if active_campaigns.exists():
+        top_campaign = max(active_campaigns, key=lambda c: c.get_target_count())
+    else:
+        top_campaign = None
+
     context = {
         'total_customers': total_customers,
-        'new_customers_this_month': 0, # Biarkan 0 dulu jika belum ada field tanggal gabung di model Customer
+        'new_customers_this_month': new_customers_this_month,
         'total_transactions': total_transactions,
         'revenue_this_month': revenue_this_month,
-        
-        # Variabel-variabel di bawah ini yang tadinya bikin grafik kosong:
         'tier_counts': tier_counts,
         'monthly_labels': json.dumps(monthly_labels),
         'monthly_data': json.dumps(monthly_data),
@@ -77,10 +92,9 @@ def dashboard(request):
         'total_churn_risk': total_churn_risk,
         'churn_risks': churn_risks,
         'recent_transactions': recent_transactions,
+        'top_campaign': top_campaign, # Kirim data campaign ke HTML
     }
     return render(request, 'core/dashboard.html', context)
-
-
 # ─── CUSTOMER ────────────────────────────────────────────────────────────────
 @login_required
 def customer_list(request):

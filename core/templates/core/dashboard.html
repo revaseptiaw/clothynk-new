@@ -131,28 +131,39 @@
         
         <div class="d-flex justify-content-between align-items-center mb-3">
           <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">🚀 Performa Campaign Teratas</h6>
-          <span class="badge" style="background:#D1FAE5; color:#065F46; font-size: 0.7rem;">🟢 Sedang Berjalan</span>
+          {% if top_campaign and top_campaign.is_running %}
+            <span class="badge" style="background:#D1FAE5; color:#065F46; font-size: 0.7rem;">🟢 Sedang Berjalan</span>
+          {% else %}
+            <span class="badge bg-secondary text-white" style="font-size: 0.7rem;">Tidak Ada Campaign Aktif</span>
+          {% endif %}
         </div>
         
+        {% if top_campaign %}
         <div>
-            <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Fashion Growth Starter</h6>
+            <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">{{ top_campaign.name }}</h6>
             <p class="text-muted mb-4" style="font-size: 0.8rem;">
-            <i class="bi bi-clock-history me-1"></i> Sisa 30 hari lagi (Berakhir 06 Jul 2026)
+            <i class="bi bi-clock-history me-1"></i> Sisa {{ top_campaign.end_date|timeuntil }} lagi (Berakhir {{ top_campaign.end_date|date:"d M Y" }})
             </p>
         </div>
         
         <div class="mt-auto">
             <div class="d-flex justify-content-between align-items-end mb-2">
-            <span style="font-size: 0.8rem; font-weight: 500; color: #4B5563;">Voucher Diklaim</span>
-            <span style="font-size: 0.85rem; font-weight: 700; color: #6C63FF;">75%</span>
+            <span style="font-size: 0.8rem; font-weight: 500; color: #4B5563;">Target Audiens</span>
+            <span style="font-size: 0.85rem; font-weight: 700; color: #6C63FF;">{{ top_campaign.get_target_count }} Orang</span>
             </div>
+            
             <div class="progress" style="height: 8px; border-radius: 10px; background-color: #EEF2FF;">
-            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%; background-color: #6C63FF;"></div>
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%; background-color: #6C63FF;"></div>
             </div>
             <small class="text-muted mt-3 d-block" style="font-size: 0.75rem;">
-            <strong>150</strong> dari total 200 target audiens telah menggunakan promo ini.
+            Target tier: <strong>{{ top_campaign.get_target_tier_display }}</strong>. Diskon: <strong>{{ top_campaign.discount_percentage|floatformat:0 }}%</strong>
             </small>
         </div>
+        {% else %}
+        <div class="text-center py-4">
+            <p class="text-muted mb-0" style="font-size:0.85rem;">Belum ada campaign yang sedang berjalan bulan ini.</p>
+        </div>
+        {% endif %}
         
       </div>
     </div>
@@ -208,7 +219,7 @@
 {% block extra_js %}
 <script>
 (function() {
-  'use strict'; // Mode ketat agar kode lebih aman
+  'use strict'; 
 
   // 1. DATA UNTUK GRAFIK PENDAPATAN
   const monthlyLabels = {{ monthly_labels|default:"[]"|safe }};
@@ -274,6 +285,6 @@
       plugins: { legend: { display: false } }
     }
   });
-})(); // Tutup fungsi isolasi
+})(); 
 </script>
 {% endblock %}
