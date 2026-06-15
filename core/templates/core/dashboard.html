@@ -1,0 +1,279 @@
+{% extends 'core/base.html' %}
+{% load crm_tags %}
+{% block title %}Dashboard{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#EEF2FF;"><span style="font-size:1.3rem;">👥</span></div>
+      <div>
+        <div class="stat-label">Total Pelanggan</div>
+        <div class="stat-value">{{ total_customers }}</div>
+        <div class="stat-sub">+{{ new_customers_this_month|default:0 }} bulan ini</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#F0FDF4;"><span style="font-size:1.3rem;">🧾</span></div>
+      <div>
+        <div class="stat-label">Total Transaksi</div>
+        <div class="stat-value">{{ total_transactions }}</div>
+        <div class="stat-sub">Semua waktu</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFFBEB;"><span style="font-size:1.3rem;">💰</span></div>
+      <div>
+        <div class="stat-label">Pendapatan Bulan Ini</div>
+        <div class="stat-value" style="font-size:1.1rem;">${{ revenue_this_month|floatformat:2 }}</div>
+        <div class="stat-sub">Bulan berjalan</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#FFF0F3;"><span style="font-size:1.3rem;">⚠️</span></div>
+      <div>
+        <div class="stat-label">Risiko Churn</div>
+        <div class="stat-value">{{ total_churn_risk }}</div>
+        <div class="stat-sub">Perlu perhatian</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-md-8">
+    <div class="card h-100 shadow-sm border-0">
+      <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+        <span class="fw-bold">📈 Tren Pendapatan</span>
+        <select id="revenueFilter" class="form-select form-select-sm" style="width: auto; font-size: 0.8rem; cursor: pointer;">
+          <option value="6m">6 Bulan Terakhir</option>
+          <option value="1y">1 Tahun Terakhir</option>
+          <option value="all">Semua Waktu</option>
+        </select>
+      </div>
+      <div class="card-body p-0">
+        <div style="height: 350px; padding: 16px 20px;">
+          <canvas id="revenueChart"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="col-md-4">
+    <div class="card h-100 shadow-sm border-0">
+      <div class="card-header bg-white py-3 fw-bold">🏅 Distribusi Tier Loyalty</div>
+      <div class="card-body d-flex flex-column align-items-center justify-content-center">
+        <canvas id="tierChart" width="200" height="200"></canvas>
+        <div class="d-flex gap-2 flex-wrap justify-content-center mt-3">
+          <span class="badge" style="background:#CD7F32; color:white;">🥉 Bronze: {{ tier_counts.bronze|default:0 }}</span>
+          <span class="badge" style="background:#9E9E9E; color:white;">🥈 Silver: {{ tier_counts.silver|default:0 }}</span>
+          <span class="badge" style="background:#FFC107; color:black;">🥇 Gold: {{ tier_counts.gold|default:0 }}</span>
+          <span class="badge" style="background:#B0BEC5; color:black;">💎 Platinum: {{ tier_counts.platinum|default:0 }}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  
+  <div class="col-md-7 d-flex flex-column">
+    
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+      <div class="card-header bg-white d-flex align-items-center justify-content-between py-3">
+        <span class="fw-bold">🧾 Transaksi Terbaru</span>
+        <a href="{% url 'transaction_list' %}" class="btn btn-sm btn-outline-secondary" style="border-radius:8px;font-size:0.75rem;">Lihat semua</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-4">Pelanggan</th>
+                <th>Total</th>
+                <th>Metode</th>
+                <th>Tanggal</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for trx in recent_transactions %}
+              <tr>
+                <td class="ps-4">
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="avatar-circle bg-primary text-white d-flex align-items-center justify-content-center rounded-circle" style="width:28px;height:28px;font-size:0.7rem;">
+                      {{ trx.customer.name|first }}
+                    </div>
+                    <a href="{% url 'customer_detail' trx.customer.pk %}" class="text-decoration-none fw-bold text-dark">{{ trx.customer.name }}</a>
+                  </div>
+                </td>
+                <td class="fw-bold" style="color:#10B981;">${{ trx.amount|floatformat:2 }}</td>
+                <td><span class="badge bg-light text-secondary">{{ trx.get_payment_method_display }}</span></td>
+                <td style="color:#888;font-size:0.8rem;">{{ trx.date|date:"d M Y" }}</td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-4">Belum ada transaksi</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mt-3 flex-grow-1" style="border-radius: 12px;">
+      <div class="card-body p-4 d-flex flex-column justify-content-center">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold mb-0 text-dark" style="font-size: 0.9rem;">🚀 Performa Campaign Teratas</h6>
+          <span class="badge" style="background:#D1FAE5; color:#065F46; font-size: 0.7rem;">🟢 Sedang Berjalan</span>
+        </div>
+        
+        <div>
+            <h6 class="fw-bold mb-1 text-dark" style="font-size: 0.95rem;">Fashion Growth Starter</h6>
+            <p class="text-muted mb-4" style="font-size: 0.8rem;">
+            <i class="bi bi-clock-history me-1"></i> Sisa 30 hari lagi (Berakhir 06 Jul 2026)
+            </p>
+        </div>
+        
+        <div class="mt-auto">
+            <div class="d-flex justify-content-between align-items-end mb-2">
+            <span style="font-size: 0.8rem; font-weight: 500; color: #4B5563;">Voucher Diklaim</span>
+            <span style="font-size: 0.85rem; font-weight: 700; color: #6C63FF;">75%</span>
+            </div>
+            <div class="progress" style="height: 8px; border-radius: 10px; background-color: #EEF2FF;">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 75%; background-color: #6C63FF;"></div>
+            </div>
+            <small class="text-muted mt-3 d-block" style="font-size: 0.75rem;">
+            <strong>150</strong> dari total 200 target audiens telah menggunakan promo ini.
+            </small>
+        </div>
+        
+      </div>
+    </div>
+
+  </div> <div class="col-md-5">
+    
+    <div class="card shadow-sm border-0 mb-3" style="border-radius: 12px;">
+      <div class="card-header bg-white py-3 fw-bold">⭐ Top Pelanggan</div>
+      <div class="card-body p-0">
+        <table class="table align-middle mb-0">
+          <tbody>
+            {% for c in top_customers %}
+            <tr>
+              <td class="ps-4">
+                <div class="d-flex align-items-center gap-2">
+                  <div class="avatar-circle bg-dark text-white d-flex align-items-center justify-content-center rounded-circle" style="width:28px;height:28px;font-size:0.7rem;">
+                    {{ c.name|first }}
+                  </div>
+                  <a href="{% url 'customer_detail' c.pk %}" class="text-decoration-none fw-bold text-dark" style="font-size:0.85rem;">{{ c.name }}</a>
+                </div>
+              </td>
+              <td class="text-end pe-4 fw-bold" style="color:#6C63FF; font-size:0.85rem;">${{ c.total|floatformat:2 }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="2" class="text-center text-muted py-3">Belum ada data</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {% if churn_risks %}
+    <div class="card shadow-sm border-0" style="border-radius: 12px;">
+      <div class="card-header bg-white py-3 fw-bold" style="color:#EF4444;">🚨 Risiko Churn Tertinggi</div>
+      <div class="card-body p-0">
+        {% for pred in churn_risks %}
+        <div class="d-flex align-items-center justify-content-between px-4 py-2 border-bottom">
+          <a href="{% url 'customer_detail' pred.customer.pk %}" class="text-decoration-none fw-bold text-dark" style="font-size:0.85rem;">{{ pred.customer.name }}</a>
+          <span class="badge" style="background:#FEE2E2;color:#EF4444;font-size:0.75rem;">{{ pred.churn_probability|floatformat:1 }}% churn</span>
+        </div>
+        {% endfor %}
+        <div class="p-3 text-center">
+          <a href="{% url 'analytics' %}" class="text-decoration-none fw-bold" style="font-size:0.8rem;color:#6C63FF;">Lihat analitik lengkap →</a>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div> </div> 
+  {% endblock %}
+
+
+{% block extra_js %}
+<script>
+(function() {
+  'use strict'; // Mode ketat agar kode lebih aman
+
+  // 1. DATA UNTUK GRAFIK PENDAPATAN
+  const monthlyLabels = {{ monthly_labels|default:"[]"|safe }};
+  const monthlyData = {{ monthly_data|default:"[]"|safe }};
+
+  const ctx1 = document.getElementById('revenueChart').getContext('2d');
+  let revenueChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels: monthlyLabels,
+      datasets: [{
+        label: 'Pendapatan ($)',
+        data: monthlyData,
+        borderColor: '#6C63FF',
+        backgroundColor: 'rgba(108,99,255,0.08)',
+        borderWidth: 2.5,
+        pointBackgroundColor: '#6C63FF',
+        pointRadius: 4,
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { 
+          grid: { display: false }, 
+          ticks: { font: { size: 10 }, maxRotation: 45, minRotation: 45 } 
+        },
+        y: {
+          ticks: { font: { size: 11 }, callback: v => '$' + v.toLocaleString('en-US') },
+          grid: { color: '#F0F0F0' }
+        }
+      }
+    }
+  });
+
+  document.getElementById('revenueFilter').addEventListener('change', function() {
+      fetch(`/api/revenue-chart/?period=${this.value}`)
+          .then(r => r.json())
+          .then(d => {
+              revenueChart.data.labels = d.labels;
+              revenueChart.data.datasets[0].data = d.data;
+              revenueChart.update();
+          });
+  });
+
+  // 2. DATA UNTUK GRAFIK DONAT
+  const ctx2 = document.getElementById('tierChart').getContext('2d');
+  new Chart(ctx2, {
+    type: 'doughnut',
+    data: {
+      labels: ['Bronze', 'Silver', 'Gold', 'Platinum'],
+      datasets: [{
+        data: [{{ tier_counts.bronze|default:0 }}, {{ tier_counts.silver|default:0 }}, {{ tier_counts.gold|default:0 }}, {{ tier_counts.platinum|default:0 }}],
+        backgroundColor: ['#CD7F32', '#9E9E9E', '#FFC107', '#B0BEC5'],
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      cutout: '75%',
+      plugins: { legend: { display: false } }
+    }
+  });
+})(); // Tutup fungsi isolasi
+</script>
+{% endblock %}
