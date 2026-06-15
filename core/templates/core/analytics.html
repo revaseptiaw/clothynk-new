@@ -45,7 +45,8 @@
                     <th>Prob. Beli Lagi</th>
                     <th>Prob. Churn</th>
                     <th>Rekomendasi</th>
-                    <th>Waktu Prediksi</th> </tr>
+                    <th>Waktu Prediksi</th> 
+                </tr>
             </thead>
             <tbody>
                 {% for pred in predictions %}
@@ -61,20 +62,22 @@
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="progress prediction-bar flex-grow-1">
-                            <div class="progress-bar bg-repurchase" style="--width: {{ pred.repurchase_probability|floatformat:0 }}%; width: var(--width);"></div>                            </div>
-                            <span class="fw-bold" style="color:#10B981; font-size:0.8rem;">{{ pred.repurchase_probability|percentage }}</span>
+                                <div class="progress-bar bg-repurchase" style="--width: {{ pred.repurchase_probability|floatformat:0 }}%; width: var(--width);"></div>
+                            </div>
+                            <span class="fw-bold" style="color:#10B981; font-size:0.8rem;">{{ pred.repurchase_probability|floatformat:1 }}%</span>
                         </div>
                     </td>
                     <td>
                         <div class="d-flex align-items-center gap-2">
                             <div class="progress prediction-bar flex-grow-1">
-                            <div class="progress-bar bg-churn" style="--width: {{ pred.churn_probability|floatformat:0 }}%; width: var(--width);"></div>                            </div>
-                            <span class="fw-bold" style="color:#EF4444; font-size:0.8rem;">{{ pred.churn_probability|percentage }}</span>
+                                <div class="progress-bar bg-churn" style="--width: {{ pred.churn_probability|floatformat:0 }}%; width: var(--width);"></div>
+                            </div>
+                            <span class="fw-bold" style="color:#EF4444; font-size:0.8rem;">{{ pred.churn_probability|floatformat:1 }}%</span>
                         </div>
                     </td>
                     <td style="font-size:0.8rem; color:#666; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ pred.recommendation }}">
-                    {{ pred.recommendation }}
-                </td>
+                        {{ pred.recommendation }}
+                    </td>
                     <td style="font-size:0.75rem; color:#aaa;">{{ pred.predicted_at|date:"d M Y H:i" }}</td>
                 </tr>
                 {% empty %}
